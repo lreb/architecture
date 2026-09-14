@@ -1,6 +1,11 @@
 @Facware.ModularMonolith.Api_HostAddress = http://localhost:5225
 
-GET {{Facware.ModularMonolith.Api_HostAddress}}/weatherforecast/
+GET {{Facware.ModularMonolith.Api_HostAddress}}/health/live
+Accept: application/json
+
+###
+
+GET {{Facware.ModularMonolith.Api_HostAddress}}/health/ready
 Accept: application/json
 
 ###

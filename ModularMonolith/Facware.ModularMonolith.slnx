@@ -1,3 +1,10 @@
 <Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Facware.ModularMonolith.SharedKernel/Facware.ModularMonolith.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Facware.ModularMonolith.Api.IntegrationTests/Facware.ModularMonolith.Api.IntegrationTests.csproj" />
+    <Project Path="tests/Facware.ModularMonolith.ArchitectureTests/Facware.ModularMonolith.ArchitectureTests.csproj" />
+  </Folder>
   <Project Path="src/Facware.ModularMonolith.Api/Facware.ModularMonolith.Api.csproj" />
 </Solution>

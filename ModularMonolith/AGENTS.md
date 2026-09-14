@@ -3,85 +3,87 @@
 ## Project Overview
 
 **Facware Modular Monolith** — .NET 10 modular monolith with Vertical Slice Architecture.
-Target: PostgreSQL + EF Core + Dapper. Initial module: Identity/Auth.
+Target: PostgreSQL + EF Core + Dapper. Initial module: Identity/Auth (not yet built).
 
 The architecture spec lives in `Facware.ModularMonolith.ARCHITECTURE.md` (1895 lines). Read it for all architectural decisions, layering rules, and implementation phases.
 
 ## Current State
 
-This is an **early-stage scaffold**. The solution has only one project:
-- `src/Facware.ModularMonolith.Api/` — ASP.NET Core Web API (net10.0)
-- `test/` — empty directory (no test projects yet)
-- No modules, no tests, no CI, no Docker yet implemented
-
-The API currently has a template weather forecast endpoint only. Identity module is planned but not built.
-
-## Solution & Build
-
-- **Solution file**: `Facware.ModularMonolith.slnx` (not `.sln` — uses the new .NET 10 solution format)
-- **Build**: `dotnet build src/Facware.ModularMonolith.Api/Facware.ModularMonolith.Api.csproj`
-- **Run**: `dotnet run --project src/Facware.ModularMonolith.Api/Facware.ModularMonolith.Api.csproj`
-- **Default ports**: `http://localhost:5225` (HTTP), `https://localhost:7102` (HTTPS)
-- **Launch settings**: Defined in `src/Facware.ModularMonolith.Api/Properties/launchSettings.json`
-- **OpenAPI**: Available at `/openapi` when `ASPNETCORE_ENVIRONMENT=Development`
-
-## Architecture Structure (Planned)
+Base scaffold complete. The solution has four projects:
 
 ```
 src/
-├── Facware.ModularMonolith.Api/           # Entry point only
-├── Facware.ModularMonolith.SharedKernel/  # Shared domain/app abstractions
-└── Modules/Identity/
-    ├── Facware.ModularMonolith.Identity.Domain/
-    ├── Facware.ModularMonolith.Identity.Application/
-    ├── Facware.ModularMonolith.Identity.Persistence/
-    └── Facware.ModularMonolith.Identity.Contracts/
+├── Facware.ModularMonolith.Api/           # ASP.NET Core Web API (net10.0) — entry point
+└── Facware.ModularMonolith.SharedKernel/  # Domain/ + Application/ abstractions only (§41: keep minimal)
+tests/
+├── Facware.ModularMonolith.Api.IntegrationTests/   # xUnit + WebApplicationFactory
+└── Facware.ModularMonolith.ArchitectureTests/     # NetArchTest.Rules + project-reference checks
 ```
 
-Key rules from the architecture spec:
-- Each module owns its `DbContext` — no shared DbContext across modules
-- Domain has **no** infrastructure dependencies (no EF Core, Dapper, ASP.NET Core, etc.)
-- Cross-module communication via contracts only — never access another module's Persistence directly
-- Use **vertical slices** for application use cases (e.g., `Authentication/Login/` contains command, handler, validator, response, endpoint together)
-- `Program.cs` stays small — register modules via `services.AddIdentityModule(configuration)`
-- Use `Directory.Packages.props` and `Directory.Build.props` for centralized package version management
+API currently provides: health checks (`/health/live`, `/health/ready`), `/openapi/v1.json` (Dev), Serilog, ProblemDetails + `IExceptionHandler`. No Identity module, no PostgreSQL yet.
 
-## Database & Migrations
+## Repo Layout & Architecture
 
-- **Database**: PostgreSQL (not yet configured)
-- **Migrations**: `dotnet ef migrations add InitialIdentity --project Facware.ModularMonolith.Identity.Persistence --startup-project Facware.ModularMonolith.Api`
-- Migrations live in `Modules/Identity/Persistence/Migrations/`
-- Use PostgreSQL schemas: `identity.users`, `identity.roles`, etc.
-- Use lowercase table/column names
+- SharedKernel contains ONLY `Entity`, `AggregateRoot`, `ValueObject`, `IDomainEvent`, `DomainEvent`, `Result`, `Error` (§41). Do not add business code there.
+- Vertical slices: each application use case is a folder (`Authentication/Login/` with command, handler, validator, response, endpoint together) — no global `Controllers/`/`Services/`/`DTOs/` dumping grounds.
+- Modules (future): each owns Domain + Application + Persistence + Contracts. Domain must have **no** infrastructure dependencies (no EF Core, Dapper, ASP.NET Core).
+- `Program.cs` stays small — module registration via `services.AddIdentityModule(configuration)`.
+- Package versions go directly in each `.csproj` (no `Directory.Packages.props` / `Directory.Build.props` — decided by the team).
 
-## Testing
+## Build / Run / Test — IMPORTANT (WSL environment)
 
-- Test projects planned but not yet created
-- Architecture tests enforce module boundaries (Domain → no infrastructure, no circular deps)
-- Integration tests use Testcontainers for PostgreSQL where practical
-- No test infrastructure exists yet — `test/` is empty
-
-## Key Commands (When Implemented)
+**CRITICAL: Tests must run from inside WSL. `WebApplicationFactory` hangs indefinitely when `dotnet test` runs from Windows over the `\\wsl.localhost\...\` UNC path.** Use `wsl -- bash -lc "..."` for all test/build commands, so paths resolve to `/home/chino/...`.
 
 ```bash
-# Build the solution
+# Build the whole solution (from Windows shell, works over UNC too)
 dotnet build Facware.ModularMonolith.slnx
 
-# Add a migration
-dotnet ef migrations add <Name> --project Facware.ModularMonolith.Identity.Persistence --startup-project Facware.ModularMonolith.Api
+# Run ALL tests (MUST be from inside WSL)
+wsl -- bash -lc "cd ~/projects/architecture/ModularMonolith && dotnet test Facware.ModularMonolith.slnx"
 
-# Apply migrations
-dotnet ef database update --project Facware.ModularMonolith.Identity.Persistence --startup-project Facware.ModularMonolith.Api
+# Run one test project in WSL
+wsl -- bash -lc "cd ~/projects/architecture/ModularMonolith && dotnet test tests/Facware.ModularMonolith.Api.IntegrationTests/Facware.ModularMonolith.Api.IntegrationTests.csproj"
 
-# Run the API
+# Filter a single test in WSL
+wsl -- bash -lc "cd ~/projects/architecture/ModularMonolith && dotnet test tests/Facware.ModularMonolith.Api.IntegrationTests/Facware.ModularMonolith.Api.IntegrationTests.csproj --filter 'FullyQualifiedName~HealthChecks'"
+
+# Run the API (Windows, normal)
 dotnet run --project src/Facware.ModularMonolith.Api/Facware.ModularMonolith.Api.csproj
 ```
 
+```bash
+http://localhost:5225/openapi/v1.json
+
+http://localhost:5225/health/live
+
+```
+
+
+- OpenAPI: `/openapi/v1.json` when `ASPNETCORE_ENVIRONMENT=Development` (default via launch profile). Swagger UI is **not** used — this is a minimal-API OpenAPI doc.
+- Ports: HTTP `5225`, HTTPS `7102` (`Properties/launchSettings.json`).
+- `dotnet ef` (10.0.2) is installed globally; watch for the mixed SDK: Windows has 10.0.3xx, WSL has 10.0.1xx.
+
+## Build-artifact gotcha
+
+`bin/` and `obj/` are shared between the Windows and WSL toolchains (same filesystem). If switching which side runs a build and you hit odd failures (e.g. `RZ3600: Invalid value '10.0' for RazorLangVersion`), clean artifacts first:
+
+```bash
+wsl -- bash -lc "cd ~/projects/architecture/ModularMonolith && find src tests -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +"
+```
+
+## Architecture Tests
+
+- `tests/Facware.ModularMonolith.ArchitectureTests/` enforces: Domain types have no infra dependencies (NetArchTest); project-reference boundaries are parsed from the `.csproj` files (assembly-ref checks are unreliable because the C# compiler drops unused references).
+- `ProjectReferences.cs` normalizes MSBuild `\` paths — keep that helper when adding module reference rules.
+
+## Database & Migrations (when Identity is built)
+
+- PostgreSQL, per-module `DbContext`, lowercase tables in `identity.*` schema.
+- Migrations: `dotnet ef migrations add <Name> --project Facware.ModularMonolith.Identity.Persistence --startup-project Facware.ModularMonolith.Api`
+
 ## Important Notes
 
-- **No `&&` or `||` in PowerShell** on this machine — use semicolons or separate commands
-- The `.slnx` solution format is new — some older `dotnet` tooling may not support it
-- `Facware.ModularMonolith.ARCHITECTURE.md` is the source of truth for all architectural decisions
-- Implementation follows phased approach (Phase 1–10) defined in the architecture doc
-- Do not add packages not listed in `Directory.Packages.props` when it exists
-- Never commit secrets, connection strings, or JWT keys
+- **No `&&` or `||` in Windows PowerShell** — use `;` or separate commands (inside `wsl ... bash -lc "..."` strings, `&&` is fine).
+- `.slnx` is the new .NET 10 solution format — some older tooling doesn't support it; add projects with `dotnet sln ... add`.
+- `Facware.ModularMonolith.ARCHITECTURE.md` is the source of truth for architectural decisions; implementation follows Phases 1–10.
+- Never commit secrets, connection strings, or JWT keys.
