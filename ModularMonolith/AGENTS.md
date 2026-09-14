@@ -56,10 +56,12 @@ http://localhost:5225/openapi/v1.json
 
 http://localhost:5225/health/live
 
+http://localhost:5225/swagger/index.html
 ```
 
 
-- OpenAPI: `/openapi/v1.json` when `ASPNETCORE_ENVIRONMENT=Development` (default via launch profile). Swagger UI is **not** used — this is a minimal-API OpenAPI doc.
+- OpenAPI: `/openapi/v1.json` when `ASPNETCORE_ENVIRONMENT=Development` (default via launch profile). Swagger UI at `/swagger` (Dev only), pointed at the built-in OpenAPI doc via `UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", ...))` — positioned before `UseExceptionHandler()` and `UseHttpsRedirection()`. Title/version come from the `Swagger` section in `appsettings.json`, applied via an `AddOpenApi` document transformer in `Program.cs`. `launchBrowser` is on with `launchUrl: "swagger"`.
+- The UI is bound to the built-in `Microsoft.AspNetCore.OpenApi` doc, so `AddSwaggerGen`/`UseSwagger` are **not** used (avoids the `Microsoft.OpenApi.Models` namespace change in Microsoft.OpenApi 2.x).
 - Ports: HTTP `5225`, HTTPS `7102` (`Properties/launchSettings.json`).
 - `dotnet ef` (10.0.2) is installed globally; watch for the mixed SDK: Windows has 10.0.3xx, WSL has 10.0.1xx.
 

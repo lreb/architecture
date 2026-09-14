@@ -14,4 +14,14 @@ public class OpenApiTests(CustomWebApplicationFactory factory) : IClassFixture<C
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
     }
+
+    [Fact]
+    public async Task SwaggerUi_IsAvailable()
+    {
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetAsync("/swagger/index.html");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
 }

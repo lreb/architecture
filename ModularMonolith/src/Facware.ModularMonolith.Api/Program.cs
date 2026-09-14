@@ -7,7 +7,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((context, services, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration));
 
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        document.Info.Title = builder.Configuration["Swagger:Title"] ?? "Facware Modular Monolith API";
+        document.Info.Version = builder.Configuration["Swagger:Version"] ?? "v1";
+        return Task.CompletedTask;
+    });
+});
 builder.Services.AddProblemDetails();
 builder.Services.AddBaseHealthChecks();
 builder.Services.AddGlobalExceptionHandling();
@@ -21,6 +29,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "Facware Modular Monolith API v1"));
+}
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {

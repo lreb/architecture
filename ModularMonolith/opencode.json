@@ -1,0 +1,68 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["AGENTS.md"],
+  "command": {
+    "build": {
+      "description": "Build the modular monolith solution",
+      "agent": "build",
+      "template": "Build the solution by running `dotnet build Facware.ModularMonolith.slnx`. If it fails with a mixed-toolchain artifact error (e.g. `RZ3600: Invalid value '10.0' for RazorLangVersion`), clean the shared bin/obj first with the `/clean` command and rebuild. Report the number of warnings and errors."
+    },
+    "test": {
+      "description": "Run all tests inside WSL (required - WebApplicationFactory hangs over the UNC path)",
+      "agent": "build",
+      "template": "Run the tests from inside WSL with `wsl -- bash -lc \"cd ~/projects/architecture/ModularMonolith && dotnet test Facware.ModularMonolith.slnx\"`. Always run tests via WSL, never directly from Windows over the `\\\\wsl.localhost\\...` UNC path. Report Passed/Failed counts.$ARGUMENTS"
+    },
+    "test:integration": {
+      "description": "Run the API integration tests inside WSL",
+      "agent": "build",
+      "template": "Run the integration test project inside WSL with `wsl -- bash -lc \"cd ~/projects/architecture/ModularMonolith && dotnet test tests/Facware.ModularMonolith.Api.IntegrationTests/Facware.ModularMonolith.Api.IntegrationTests.csproj\"`. Always run via WSL, never from Windows over the UNC path. Report Passed/Failed counts.$ARGUMENTS"
+    },
+    "test:architecture": {
+      "description": "Run the architecture tests inside WSL",
+      "agent": "build",
+      "template": "Run the architecture test project inside WSL with `wsl -- bash -lc \"cd ~/projects/architecture/ModularMonolith && dotnet test tests/Facware.ModularMonolith.ArchitectureTests/Facware.ModularMonolith.ArchitectureTests.csproj\"`. Always run via WSL, never from Windows over the UNC path. Report Passed/Failed counts.$ARGUMENTS"
+    },
+    "run": {
+      "description": "Run the API locally",
+      "agent": "build",
+      "template": "Run the API with `dotnet run --project src/Facware.ModularMonolith.Api/Facware.ModularMonolith.Api.csproj`. It serves HTTP http://localhost:5225 and HTTPS https://localhost:7102. OpenAPI is available at /openapi/v1.json in Development."
+    },
+    "clean": {
+      "description": "Clean shared bin/obj artifacts (fixes Windows/WSL mixed-toolchain build errors)",
+      "agent": "build",
+      "template": "Clean the shared bin/obj directories (used by both the Windows and WSL toolchains) with `wsl -- bash -lc \"cd ~/projects/architecture/ModularMonolith && find src tests -type d \\( -name bin -o -name obj \\) -prune -exec rm -rf {} +\"`. Run this when a build fails with mixed-toolchain errors such as RZ3600."
+    }
+  },
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "dotnet build *": "allow",
+      "dotnet run *": "allow",
+      "dotnet sln *": "allow",
+      "wsl *": "allow",
+      "node *": "allow",
+      "bash *": "allow",
+      "pwsh *": "allow",
+      "powershell *": "allow",
+      "git *": "allow",
+      "npm *": "allow",
+      "python *": "allow",
+      "pip *": "allow",
+      "curl *": "allow",
+      "wget *": "allow",
+      "shell *": "allow",
+      "find *": "allow",
+      "head *": "allow",
+      "ls *": "allow",
+      "cat *": "allow",
+      "grep *": "allow",
+      "echo *": "allow",
+      "string *": "allow",
+      "Where-Object *": "allow",
+      "ForEach-Object *": "allow",
+      "Select-Object *": "allow",
+      "kill *": "allow",
+      "pkill *": "allow"
+    }
+  }
+}
