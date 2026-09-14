@@ -1,0 +1,6 @@
+@Facware.ModularMonolith.Api_HostAddress = http://localhost:5225
+
+GET {{Facware.ModularMonolith.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
